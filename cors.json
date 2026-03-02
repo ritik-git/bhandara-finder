@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:5173", "http://localhost:4173", "https://bhandara-f9f81.web.app", "https://bhandara-f9f81.firebaseapp.com"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "x-goog-resumable"]
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "name": "bhandara-finder",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "vite build && vercel --prod"
+  },
+  "dependencies": {
+    "@react-google-maps/api": "^2.20.8",
+    "browser-image-compression": "^2.0.2",
+    "date-fns": "^3.0.6",
+    "firebase": "^10.7.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.21.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.8",
+    "vite-plugin-pwa": "^0.17.4"
+  }
+}

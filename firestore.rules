@@ -1,0 +1,93 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuth() && exists(/databases/$(database)/documents/admin/config) &&
+        request.auth.uid in get(/databases/$(database)/documents/admin/config).data.adminUIDs;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      return isAuth() && getUserData().accountStatus == 'active';
+    }
+
+    // ── Admin config ───────────────────────────────────────────────────────────
+    match /admin/{doc} {
+      allow read: if isAuth();
+      allow write: if false; // Only writable via Firebase console or Cloud Functions
+    }
+
+    // ── Users ──────────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      // Users can read their own profile; admins can read any
+      allow read: if isOwner(uid) || isAdmin();
+
+      // Only the user themselves can create their profile (on first login)
+      allow create: if isOwner(uid) &&
+        request.resource.data.keys().hasAll(['phoneNumber', 'name', 'city', 'karmaPoints']) &&
+        request.resource.data.karmaPoints == 0;
+
+      // Users can update their own non-sensitive fields
+      allow update: if isOwner(uid) &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['karmaPoints', 'trustLevel', 'totalReports', 'verifiedReports',
+                   'flaggedReports', 'accountStatus', 'warningCount', 'bannedAt',
+                   'banReason', 'previouslyBanned', 'permanentBan']);
+
+      // Admins can update any user field
+      allow update: if isAdmin();
+
+      // Notifications subcollection
+      match /notifications/{notifId} {
+        allow read: if isOwner(uid);
+        allow write: if isAdmin();
+        allow update: if isOwner(uid) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      }
+    }
+
+    // ── Bhandaras ──────────────────────────────────────────────────────────────
+    match /bhandaras/{bhandaraId} {
+      // Public readable (everyone can see bhandaras)
+      allow read: if true;
+
+      // Only authenticated active users can create bhandaras
+      allow create: if isActiveUser() &&
+        request.resource.data.reportedBy == request.auth.uid &&
+        request.resource.data.photos.size() >= 1 &&
+        request.resource.data.title.size() <= 100;
+
+      // Users can only update their own bhandaras (limited fields)
+      // Confirmations, flags, etc. are updated via Cloud Functions only
+      allow update: if isAdmin() ||
+        (isOwner(resource.data.reportedBy) &&
+         !request.resource.data.diff(resource.data).affectedKeys()
+           .hasAny(['confirmations', 'checkIns', 'flags', 'flagCount',
+                    'confirmationCount', 'checkInCount', 'status', 'confidenceScore',
+                    'reportedBy']));
+
+      // No one can delete bhandaras from client
+      allow delete: if false;
+    }
+
+    // ── Flag tracking ──────────────────────────────────────────────────────────
+    match /flagHistory/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if false; // Cloud Functions only
+    }
+  }
+}
