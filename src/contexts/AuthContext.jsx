@@ -6,6 +6,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { serverTimestamp } from 'firebase/firestore';
 import { getUserProfile, createUserProfile, updateUserProfile, isAdmin } from '../services/userService';
 
 const AuthContext = createContext(null);
@@ -33,11 +34,15 @@ export function AuthProvider({ children }) {
             ? `found (name: ${profile.name}, city: ${profile.city})`
             : 'null (no profile yet — needs /complete-profile)');
           setUserProfile(profile);
-          const adminStatus = await isAdmin(user.uid);
-          console.log('[Auth] Admin status:', adminStatus);
-          setIsAdminUser(adminStatus);
+
+          // Only check admin status and update lastActive when a profile exists.
+          // Doing these before the profile is created causes permission errors.
           if (profile) {
-            await updateUserProfile(user.uid, { lastActive: new Date() });
+            const adminStatus = await isAdmin(user.uid);
+            console.log('[Auth] Admin status:', adminStatus);
+            setIsAdminUser(adminStatus);
+            // Fire-and-forget — don't block or throw on lastActive failures
+            updateUserProfile(user.uid, { lastActive: serverTimestamp() }).catch(() => {});
             console.log('[Auth] lastActive updated.');
           }
         } catch (err) {

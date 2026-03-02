@@ -44,18 +44,19 @@ service cloud.firestore {
       // Users can read their own profile; admins can read any
       allow read: if isOwner(uid) || isAdmin();
 
-      // Profile creation — app uses Google Sign-In so phoneNumber is not required.
-      // Only require name, city, and karmaPoints starting at 0.
+      // Profile creation — Google Sign-In (no phoneNumber required).
       allow create: if isOwner(uid) &&
         request.resource.data.keys().hasAll(['name', 'city', 'karmaPoints']) &&
         request.resource.data.karmaPoints == 0;
 
-      // Users can update their own non-sensitive fields
+      // Users can update their own safe fields (name, city, profilePhoto, etc.)
+      // but cannot modify karma/trust/status fields (those are server-side only).
       allow update: if isOwner(uid) &&
         !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(['karmaPoints', 'trustLevel', 'totalReports', 'verifiedReports',
                    'flaggedReports', 'accountStatus', 'warningCount', 'bannedAt',
-                   'banReason', 'previouslyBanned', 'permanentBan']);
+                   'banReason', 'previouslyBanned', 'permanentBan',
+                   'createdAt']);
 
       // Admins can update any user field
       allow update: if isAdmin();

@@ -27,8 +27,29 @@ export async function getUserProfile(uid) {
 
 export async function createUserProfile(uid, data) {
   const ref = doc(db, 'users', uid);
+
+  // Check if the document already exists (can happen if the user revisits
+  // /complete-profile, or a previous session created a partial document).
+  const existing = await getDoc(ref);
+
+  if (existing.exists()) {
+    // Document exists — only update the safe, editable fields.
+    // Never overwrite karmaPoints / trustLevel / accountStatus etc.
+    await updateDoc(ref, {
+      name: data.name,
+      city: data.city,
+      lastActive: serverTimestamp(),
+    });
+    return {
+      id: uid,
+      ...existing.data(),
+      name: data.name,
+      city: data.city,
+    };
+  }
+
+  // Document does not exist — create it with all initial values.
   const profile = {
-    phoneNumber: data.phoneNumber,
     name: data.name,
     city: data.city,
     profilePhoto: null,
