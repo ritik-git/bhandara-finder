@@ -3,7 +3,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // ── Helper functions ────────────────────────────────────────────────────────
+
     function isAuth() {
       return request.auth != null;
     }
@@ -12,33 +13,41 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
 
+    // Safe isAdmin — uses .get('field', default) so it never throws even if
+    // admin/config doesn't exist or is missing the adminUIDs field.
     function isAdmin() {
-      return isAuth() && exists(/databases/$(database)/documents/admin/config) &&
-        request.auth.uid in get(/databases/$(database)/documents/admin/config).data.adminUIDs;
+      return isAuth() &&
+        exists(/databases/$(database)/documents/admin/config) &&
+        request.auth.uid in
+          get(/databases/$(database)/documents/admin/config).data.get('adminUIDs', []);
     }
 
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    // Safe isActiveUser — checks the user doc exists before reading accountStatus
     function isActiveUser() {
-      return isAuth() && getUserData().accountStatus == 'active';
+      return isAuth() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().accountStatus == 'active';
     }
 
-    // ── Admin config ───────────────────────────────────────────────────────────
+    // ── Admin config ────────────────────────────────────────────────────────────
     match /admin/{doc} {
       allow read: if isAuth();
-      allow write: if false; // Only writable via Firebase console or Cloud Functions
+      allow write: if false; // Only writable via Firebase Console / Cloud Functions
     }
 
-    // ── Users ──────────────────────────────────────────────────────────────────
+    // ── Users ───────────────────────────────────────────────────────────────────
     match /users/{uid} {
       // Users can read their own profile; admins can read any
       allow read: if isOwner(uid) || isAdmin();
 
-      // Only the user themselves can create their profile (on first login)
+      // Profile creation — app uses Google Sign-In so phoneNumber is not required.
+      // Only require name, city, and karmaPoints starting at 0.
       allow create: if isOwner(uid) &&
-        request.resource.data.keys().hasAll(['phoneNumber', 'name', 'city', 'karmaPoints']) &&
+        request.resource.data.keys().hasAll(['name', 'city', 'karmaPoints']) &&
         request.resource.data.karmaPoints == 0;
 
       // Users can update their own non-sensitive fields
@@ -60,9 +69,9 @@ service cloud.firestore {
       }
     }
 
-    // ── Bhandaras ──────────────────────────────────────────────────────────────
+    // ── Bhandaras ───────────────────────────────────────────────────────────────
     match /bhandaras/{bhandaraId} {
-      // Public readable (everyone can see bhandaras)
+      // Anyone can read bhandaras (map is public)
       allow read: if true;
 
       // Only authenticated active users can create bhandaras
@@ -71,8 +80,7 @@ service cloud.firestore {
         request.resource.data.photos.size() >= 1 &&
         request.resource.data.title.size() <= 100;
 
-      // Users can only update their own bhandaras (limited fields)
-      // Confirmations, flags, etc. are updated via Cloud Functions only
+      // Owners can update limited fields; admins can update anything
       allow update: if isAdmin() ||
         (isOwner(resource.data.reportedBy) &&
          !request.resource.data.diff(resource.data).affectedKeys()
@@ -80,11 +88,11 @@ service cloud.firestore {
                     'confirmationCount', 'checkInCount', 'status', 'confidenceScore',
                     'reportedBy']));
 
-      // No one can delete bhandaras from client
+      // No client-side deletes
       allow delete: if false;
     }
 
-    // ── Flag tracking ──────────────────────────────────────────────────────────
+    // ── Flag tracking ───────────────────────────────────────────────────────────
     match /flagHistory/{uid} {
       allow read: if isOwner(uid) || isAdmin();
       allow write: if false; // Cloud Functions only
