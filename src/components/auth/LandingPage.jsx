@@ -3,11 +3,114 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LanguageContext';
 
+// Detect in-app browsers (WebViews) where Google OAuth is blocked
+function detectInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  if (/Instagram/i.test(ua))  return 'Instagram';
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'Facebook';
+  if (/WhatsApp/i.test(ua))   return 'WhatsApp';
+  if (/Twitter/i.test(ua))    return 'Twitter / X';
+  if (/Snapchat/i.test(ua))   return 'Snapchat';
+  if (/TikTok|musical_ly/i.test(ua)) return 'TikTok';
+  if (/Line\//i.test(ua))     return 'Line';
+  if (/GSA\//i.test(ua))      return 'Google Search App';
+  // Generic Android WebView (Version/ without Chrome/)
+  if (/Android/.test(ua) && /Version\/\d/.test(ua) && !/Chrome\/\d/.test(ua)) return 'In-App Browser';
+  return null;
+}
+
 export default function LandingPage() {
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { signInWithGoogle } = useAuth();
   const { t, lang, toggleLang } = useLang();
+
+  const inAppBrowser = detectInAppBrowser();
+  const appUrl = 'https://bhandara-f9f81.web.app';
+
+  // ── Show WebView warning ─────────────────────────────────────────────────────
+  if (inAppBrowser) {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const chromeIntentUrl = `intent://${appUrl.replace('https://', '')}#Intent;scheme=https;package=com.android.chrome;end`;
+
+    async function copyLink() {
+      try {
+        await navigator.clipboard.writeText(appUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      } catch {
+        // fallback — select text
+        const el = document.createElement('input');
+        el.value = appUrl;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      }
+    }
+
+    return (
+      <div className="landing-page">
+        <div className="landing-bg" />
+        <button className="lang-toggle-btn" onClick={toggleLang} aria-label="Toggle language">
+          {lang === 'en' ? 'हिं' : 'EN'}
+        </button>
+        <div className="landing-content">
+          <div className="landing-logo">
+            <div className="logo-icon">🙏</div>
+            <h1 className="logo-title">{t('appName')}</h1>
+          </div>
+
+          <div className="webview-warning">
+            <div className="webview-warning-icon">🌐</div>
+            <h2 className="webview-warning-title">
+              {lang === 'hi' ? 'Chrome / Safari में खोलें' : 'Open in Chrome or Safari'}
+            </h2>
+            <p className="webview-warning-desc">
+              {lang === 'hi'
+                ? `Google Sign-In ${inAppBrowser} के अंदर काम नहीं करता। कृपया इस लिंक को Chrome या Safari में खोलें।`
+                : `Google Sign-In doesn't work inside ${inAppBrowser}. Please open this link in Chrome or Safari.`}
+            </p>
+
+            <div className="webview-steps">
+              {lang === 'hi' ? (
+                <>
+                  <p>📋 <strong>तरीका:</strong></p>
+                  <p>1. नीचे "लिंक कॉपी करें" दबाएँ</p>
+                  <p>2. Chrome या Safari खोलें</p>
+                  <p>3. एड्रेस बार में लिंक पेस्ट करें</p>
+                </>
+              ) : (
+                <>
+                  <p>📋 <strong>How to open:</strong></p>
+                  <p>1. Tap "Copy Link" below</p>
+                  <p>2. Open Chrome or Safari</p>
+                  <p>3. Paste the link in the address bar</p>
+                </>
+              )}
+            </div>
+
+            <div className="webview-url-box">{appUrl}</div>
+
+            <button className="webview-copy-btn" onClick={copyLink}>
+              {copied
+                ? (lang === 'hi' ? '✅ कॉपी हो गया!' : '✅ Copied!')
+                : (lang === 'hi' ? '📋 लिंक कॉपी करें' : '📋 Copy Link')}
+            </button>
+
+            {isAndroid && (
+              <a className="webview-chrome-btn" href={chromeIntentUrl}>
+                {lang === 'hi' ? '🔵 Chrome में खोलें' : '🔵 Open in Chrome'}
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   async function handleGoogleSignIn() {
     console.log('[LandingPage] Google Sign-In button clicked.');

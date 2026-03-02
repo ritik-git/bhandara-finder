@@ -719,6 +719,82 @@ a { text-decoration: none; color: inherit; }
 
 .landing-disclaimer { margin-top: 1rem; font-size: 0.8rem; opacity: 0.8; }
 
+/* ── WebView in-app browser warning ────────────────────────────────────────── */
+.webview-warning {
+  background: rgba(255,255,255,0.12);
+  border: 1.5px solid rgba(255,255,255,0.25);
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  margin-top: 0.5rem;
+}
+.webview-warning-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.webview-warning-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.6rem;
+}
+.webview-warning-desc {
+  font-size: 0.92rem;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.webview-steps {
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 1rem;
+  line-height: 1.8;
+}
+.webview-url-box {
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: #93c5fd;
+  font-family: monospace;
+  margin-bottom: 1rem;
+  word-break: break-all;
+}
+.webview-copy-btn {
+  display: block;
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 50px;
+  border: none;
+  background: #fff;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  transition: opacity 0.2s;
+}
+.webview-copy-btn:active { opacity: 0.8; }
+.webview-chrome-btn {
+  display: block;
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 50px;
+  border: 1.5px solid rgba(255,255,255,0.5);
+  background: transparent;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  box-sizing: border-box;
+  transition: background 0.2s;
+}
+.webview-chrome-btn:active { background: rgba(255,255,255,0.1); }
+
 /* ── Map page ──────────────────────────────────────────────────────────────── */
 .map-page {
   display: flex;
